@@ -1,0 +1,65 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  payees    Payee[]
+  payments  Payment[]
+  
+  @@map("users")
+}
+
+model Payee {
+  id          String   @id @default(cuid())
+  name        String
+  amount      Float
+  dueDate     Int      // Day of month (1-31)
+  payPeriod   PayPeriod // 3rd or 15th
+  category    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments    Payment[]
+  
+  @@map("payees")
+}
+
+model Payment {
+  id          String   @id @default(cuid())
+  amount      Float
+  paidDate    DateTime
+  payPeriod   PayPeriod
+  month       Int
+  year        Int
+  notes       String?
+  createdAt   DateTime @default(now())
+  
+  payeeId     String
+  payee       Payee    @relation(fields: [payeeId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("payments")
+}
+
+enum PayPeriod {
+  THIRD
+  FIFTEENTH
+}
