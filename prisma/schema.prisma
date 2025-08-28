@@ -19,6 +19,7 @@ model User {
   
   payees    Payee[]
   payments  Payment[]
+  oneTimePayments OneTimePayment[]
   
   @@map("users")
 }
@@ -57,6 +58,24 @@ model Payment {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@map("payments")
+}
+
+model OneTimePayment {
+  id          String   @id @default(cuid())
+  name        String
+  amount      Float
+  dueDate     DateTime
+  category    String?
+  isPaid      Boolean  @default(false)
+  paidDate    DateTime?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("one_time_payments")
 }
 
 enum PayPeriod {
