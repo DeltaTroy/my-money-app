@@ -105,6 +105,10 @@ export default function BillsPage() {
   const [oneTimePayments, setOneTimePayments] = useState(mockOneTimePayments)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isAddOneTimeDialogOpen, setIsAddOneTimeDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isEditOneTimeDialogOpen, setIsEditOneTimeDialogOpen] = useState(false)
+  const [editingPayee, setEditingPayee] = useState<any>(null)
+  const [editingOneTimePayment, setEditingOneTimePayment] = useState<any>(null)
   const [newPayee, setNewPayee] = useState({
     name: "",
     amount: "",
@@ -138,6 +142,39 @@ export default function BillsPage() {
     }
   }
 
+  const handleEditPayee = (payee: any) => {
+    setEditingPayee(payee)
+    setNewPayee({
+      name: payee.name,
+      amount: payee.amount.toString(),
+      dueDate: payee.dueDate.toString(),
+      payPeriod: payee.payPeriod,
+      category: payee.category
+    })
+    setIsEditDialogOpen(true)
+  }
+
+  const handleUpdatePayee = () => {
+    if (editingPayee && newPayee.name && newPayee.amount && newPayee.dueDate && newPayee.payPeriod) {
+      const updatedPayees = payees.map(payee => 
+        payee.id === editingPayee.id 
+          ? {
+              ...payee,
+              name: newPayee.name,
+              amount: parseFloat(newPayee.amount),
+              dueDate: parseInt(newPayee.dueDate),
+              payPeriod: newPayee.payPeriod,
+              category: newPayee.category || "Other"
+            }
+          : payee
+      )
+      setPayees(updatedPayees)
+      setNewPayee({ name: "", amount: "", dueDate: "", payPeriod: "", category: "" })
+      setEditingPayee(null)
+      setIsEditDialogOpen(false)
+    }
+  }
+
   const handleAddOneTimePayment = () => {
     if (newOneTimePayment.name && newOneTimePayment.amount && newOneTimePayment.dueDate) {
       const payment = {
@@ -155,6 +192,39 @@ export default function BillsPage() {
     }
   }
 
+  const handleEditOneTimePayment = (payment: any) => {
+    setEditingOneTimePayment(payment)
+    setNewOneTimePayment({
+      name: payment.name,
+      amount: payment.amount.toString(),
+      dueDate: payment.dueDate,
+      category: payment.category,
+      notes: payment.notes || ""
+    })
+    setIsEditOneTimeDialogOpen(true)
+  }
+
+  const handleUpdateOneTimePayment = () => {
+    if (editingOneTimePayment && newOneTimePayment.name && newOneTimePayment.amount && newOneTimePayment.dueDate) {
+      const updatedPayments = oneTimePayments.map(payment =>
+        payment.id === editingOneTimePayment.id
+          ? {
+              ...payment,
+              name: newOneTimePayment.name,
+              amount: parseFloat(newOneTimePayment.amount),
+              dueDate: newOneTimePayment.dueDate,
+              category: newOneTimePayment.category || "Other",
+              notes: newOneTimePayment.notes
+            }
+          : payment
+      )
+      setOneTimePayments(updatedPayments)
+      setNewOneTimePayment({ name: "", amount: "", dueDate: "", category: "", notes: "" })
+      setEditingOneTimePayment(null)
+      setIsEditOneTimeDialogOpen(false)
+    }
+  }
+
   const handleMarkAsPaid = (payeeId: string, amount: number) => {
     setPayees(payees.map(payee => 
       payee.id === payeeId 
@@ -169,6 +239,14 @@ export default function BillsPage() {
         ? { ...payment, isPaid: true, paidDate: new Date().toISOString().split('T')[0] }
         : payment
     ))
+  }
+
+  const handleDeletePayee = (payeeId: string) => {
+    setPayees(payees.filter(payee => payee.id !== payeeId))
+  }
+
+  const handleDeleteOneTimePayment = (paymentId: string) => {
+    setOneTimePayments(oneTimePayments.filter(payment => payment.id !== paymentId))
   }
 
   const thirdPayees = payees.filter(p => p.payPeriod === "THIRD")
@@ -223,8 +301,20 @@ export default function BillsPage() {
               >
                 {isRecentlyPaid ? "Paid" : "Mark Paid"}
               </Button>
-              <Button size="sm" variant="ghost">
+              <Button 
+                size="sm" 
+                variant="ghost"
+                onClick={() => handleEditPayee(payee)}
+              >
                 <Edit className="w-4 h-4" />
+              </Button>
+              <Button 
+                size="sm" 
+                variant="ghost"
+                onClick={() => handleDeletePayee(payee.id)}
+                className="text-red-600 hover:text-red-700"
+              >
+                <Trash2 className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -294,8 +384,20 @@ export default function BillsPage() {
                   Mark Paid
                 </Button>
               )}
-              <Button size="sm" variant="ghost">
+              <Button 
+                size="sm" 
+                variant="ghost"
+                onClick={() => handleEditOneTimePayment(payment)}
+              >
                 <Edit className="w-4 h-4" />
+              </Button>
+              <Button 
+                size="sm" 
+                variant="ghost"
+                onClick={() => handleDeleteOneTimePayment(payment.id)}
+                className="text-red-600 hover:text-red-700"
+              >
+                <Trash2 className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -418,6 +520,89 @@ export default function BillsPage() {
               </DialogContent>
             </Dialog>
 
+            {/* Edit Recurring Bill Dialog */}
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Edit Recurring Bill</DialogTitle>
+                  <DialogDescription>
+                    Update the details of your recurring bill.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="editName">Bill Name</Label>
+                    <Input
+                      id="editName"
+                      placeholder="e.g., Electric Bill"
+                      value={newPayee.name}
+                      onChange={(e) => setNewPayee({...newPayee, name: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="editAmount">Amount</Label>
+                    <Input
+                      id="editAmount"
+                      type="number"
+                      placeholder="0.00"
+                      value={newPayee.amount}
+                      onChange={(e) => setNewPayee({...newPayee, amount: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="editDueDate">Due Date</Label>
+                    <Input
+                      id="editDueDate"
+                      type="number"
+                      min="1"
+                      max="31"
+                      placeholder="Day of month (1-31)"
+                      value={newPayee.dueDate}
+                      onChange={(e) => setNewPayee({...newPayee, dueDate: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="editPayPeriod">Pay Period</Label>
+                    <Select value={newPayee.payPeriod} onValueChange={(value) => setNewPayee({...newPayee, payPeriod: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select pay period" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="THIRD">3rd of the month</SelectItem>
+                        <SelectItem value="FIFTEENTH">15th of the month</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="editCategory">Category</Label>
+                    <Select value={newPayee.category} onValueChange={(value) => setNewPayee({...newPayee, category: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category} value={category}>{category}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex space-x-2 pt-4">
+                    <Button onClick={handleUpdatePayee} className="flex-1">
+                      Update Bill
+                    </Button>
+                    <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
             <Dialog open={isAddOneTimeDialogOpen} onOpenChange={setIsAddOneTimeDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
@@ -493,6 +678,83 @@ export default function BillsPage() {
                       Add Payment
                     </Button>
                     <Button variant="outline" onClick={() => setIsAddOneTimeDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Edit One-Time Payment Dialog */}
+            <Dialog open={isEditOneTimeDialogOpen} onOpenChange={setIsEditOneTimeDialogOpen}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Edit One-Time Payment</DialogTitle>
+                  <DialogDescription>
+                    Update the details of your one-time payment.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="editOtName">Payment Name</Label>
+                    <Input
+                      id="editOtName"
+                      placeholder="e.g., Car Registration"
+                      value={newOneTimePayment.name}
+                      onChange={(e) => setNewOneTimePayment({...newOneTimePayment, name: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="editOtAmount">Amount</Label>
+                    <Input
+                      id="editOtAmount"
+                      type="number"
+                      placeholder="0.00"
+                      value={newOneTimePayment.amount}
+                      onChange={(e) => setNewOneTimePayment({...newOneTimePayment, amount: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="editOtDueDate">Due Date</Label>
+                    <Input
+                      id="editOtDueDate"
+                      type="date"
+                      value={newOneTimePayment.dueDate}
+                      onChange={(e) => setNewOneTimePayment({...newOneTimePayment, dueDate: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="editOtCategory">Category</Label>
+                    <Select value={newOneTimePayment.category} onValueChange={(value) => setNewOneTimePayment({...newOneTimePayment, category: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category} value={category}>{category}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="editOtNotes">Notes (Optional)</Label>
+                    <Input
+                      id="editOtNotes"
+                      placeholder="Additional notes..."
+                      value={newOneTimePayment.notes}
+                      onChange={(e) => setNewOneTimePayment({...newOneTimePayment, notes: e.target.value})}
+                    />
+                  </div>
+                  
+                  <div className="flex space-x-2 pt-4">
+                    <Button onClick={handleUpdateOneTimePayment} className="flex-1">
+                      Update Payment
+                    </Button>
+                    <Button variant="outline" onClick={() => setIsEditOneTimeDialogOpen(false)}>
                       Cancel
                     </Button>
                   </div>
